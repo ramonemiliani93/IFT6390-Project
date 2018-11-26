@@ -56,10 +56,10 @@ if __name__ == "__main__":
 
     for combination in combinations:
         # Modify the relevant parameter in params
-        job_name = ''
+        job_name = '{}__{}'.format(args.model, args.dataset)
         for idx, key in enumerate(dict_params.keys()):
             value = combination[idx]
-            job_name = job_name + "{}__{}___".format(key, value)
+            job_name = job_name + "___{}__{}".format(key, value)
             setattr(params, key, value)
 
         # Launch job (name has to be unique)

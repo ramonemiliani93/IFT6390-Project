@@ -15,6 +15,7 @@ from metrics import dict_metrics
 from model.net import LinearRegression, MLP, CNN
 import model.data_loader as data_loader
 from evaluate import evaluate
+from losses import CrossEntropyWithL1Loss
 
 
 # Constants
@@ -62,7 +63,7 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params):
 
             # compute model output and loss
             output_batch = model(train_batch)
-            loss = loss_fn(output_batch, labels_batch)
+            loss = loss_fn(output_batch, labels_batch, model)
 
             # clear previous gradients, compute gradients of all variables wrt loss
             optimizer.zero_grad()
@@ -203,10 +204,10 @@ if __name__ == '__main__':
         'cnn': CNN().cuda() if params.cuda else CNN()
     }
     model = choices[args.model]
-    optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=params.weight_decay)
+    optimizer = optim.SGD(model.parameters(), lr=params.learning_rate, weight_decay=params.weight_decay)
 
     # fetch loss function and metrics
-    loss_fn = torch.nn.MultiMarginLoss()
+    loss_fn = CrossEntropyWithL1Loss(params.l1_reg)
     metrics = dict_metrics
 
     # Train the model
