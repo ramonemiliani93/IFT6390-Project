@@ -44,7 +44,7 @@ class MLP(nn.Module):
             nn.ReLU(),
         )
         self.classifier = nn.Sequential(
-            nn.Linear(self.layers[-1], self.num_classes)
+            nn.Linear(256, self.num_classes)
         )
 
     def forward(self, x):

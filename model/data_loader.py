@@ -1,6 +1,6 @@
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
-from torchvision.datasets import CIFAR10, FashionMNIST, MNIST
+from torchvision.datasets import CIFAR10, FashionMNIST
 
 # Constants
 NUM_WORKERS = 8
@@ -22,7 +22,7 @@ def create_dataset(dataset, root, train, download):
     if dataset == 'cifar':
         data_set = CIFAR10(root=root, train=train, download=download, transform=cifar_transformer)
     elif dataset == 'fashion':
-        data_set = MNIST(root=root, train=train, download=download, transform=fashion_transformer)
+        data_set = FashionMNIST(root=root, train=train, download=download, transform=fashion_transformer)
     else:
         pass
     return data_set
