@@ -16,7 +16,6 @@ from model.net import LinearRegression, MLP, CNN
 import model.data_loader as data_loader
 from evaluate import evaluate
 
-from tensorboardX import SummaryWriter
 
 # Constants
 SAVE_SUMMARY_STEPS = 100
@@ -33,7 +32,7 @@ parser.add_argument('--restore_file', default=None,
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params):
-    """Train the model on `num_steps` batches
+    """Train the model on batches
     Args:
         model: (torch.nn.Module) the neural network
         optimizer: (torch.optim) optimizer for parameters of model
@@ -41,7 +40,6 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params):
         dataloader: (DataLoader) a torch.utils.data.DataLoader object that fetches training data
         metrics: (dict) a dictionary of functions that compute a metric using the output and labels of each batch
         params: (Params) hyperparameters
-        num_steps: (int) number of batches to train on, each of size params.batch_size
     """
 
     # set model to training mode
@@ -54,9 +52,11 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params):
     # Use tqdm for progress bar
     with tqdm(total=len(dataloader)) as t:
         for i, (train_batch, labels_batch) in enumerate(dataloader):
+
             # move to GPU if available
             if params.cuda:
                 train_batch, labels_batch = train_batch.cuda(), labels_batch.cuda()
+
             # convert to torch Variables
             train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
 
@@ -96,7 +96,7 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params):
     return metrics_mean, loss_avg()
 
 
-def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_fn, metrics, params, writer, model_dir,
+def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_fn, metrics, params, model_dir,
                        restore_file=None):
     """Train the model and evaluate every epoch.
     Args:
@@ -124,6 +124,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
     val_losses = []
 
     for epoch in range(params.num_epochs):
+        # Step in scheduler
+        # scheduler.step()
         # Run one epoch
         logging.info("Epoch {}/{}".format(epoch + 1, params.num_epochs))
 
@@ -138,12 +140,6 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         train_losses.append(train_loss)
         val_accuracies.append(val_metrics['accuracy'])
         val_losses.append(val_loss)
-
-        # TensorboardX variables
-        writer.add_scalar('Train/Accuracy', train_metrics['accuracy'], epoch)
-        writer.add_scalar('Val/Accuracy', val_metrics['accuracy'], epoch)
-        writer.add_scalar('Train/Loss', train_loss, epoch)
-        writer.add_scalar('Val/Loss', val_loss, epoch)
 
         val_acc = val_metrics['accuracy']
         is_best = val_acc >= best_val_acc
@@ -190,16 +186,13 @@ if __name__ == '__main__':
         torch.cuda.manual_seed(230)
 
     # Set the logger
-    utils.set_logger(os.path.join(args.model_dir, 'train.log'))
-
-    # Set the tensorboardX directory
-    writer = SummaryWriter(args.model_dir)
+    utils.set_logger(os.path.join(args.model_dir, 'lg.log'))
 
     # Create the input data pipeline
     logging.info("Loading the datasets...")
 
     # fetch dataloaders
-    train_dl, val_dl  = data_loader.fetch_dataloader(args.dataset, args.data_dir, params)
+    train_dl, val_dl = data_loader.fetch_dataloader(args.dataset, args.data_dir, params)
 
     logging.info("- done.")
 
@@ -213,14 +206,10 @@ if __name__ == '__main__':
     optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=params.weight_decay)
 
     # fetch loss function and metrics
-    loss_fn = torch.nn.CrossEntropyLoss()
+    loss_fn = torch.nn.MultiMarginLoss()
     metrics = dict_metrics
 
     # Train the model
     logging.info("Starting training for {} epoch(s)".format(params.num_epochs))
-    train_and_evaluate(model, train_dl, val_dl, optimizer, loss_fn, metrics, params, writer, args.model_dir,
+    train_and_evaluate(model, train_dl, val_dl, optimizer, loss_fn, metrics, params, args.model_dir,
                        args.restore_file)
-
-    # Closer writer
-    writer.export_scalars_to_json("results.json")
-    writer.close()

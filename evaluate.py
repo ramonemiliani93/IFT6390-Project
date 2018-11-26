@@ -30,6 +30,8 @@ def evaluate(model, loss_fn, dataloader, metrics, params):
         params: (Params) hyperparameters
         num_steps: (int) number of batches to train on, each of size params.batch_size
     """
+    # Last layer activation
+    activation = torch.nn.Softmax(dim=1)
 
     # set model to evaluation mode
     model.eval()
@@ -51,7 +53,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params):
         loss = loss_fn(output_batch, labels_batch)
 
         # extract data from torch Variable, move to cpu, convert to numpy arrays
-        output_batch = output_batch.data.cpu().numpy()
+        output_batch = activation(output_batch).data.cpu().numpy()
         labels_batch = labels_batch.data.cpu().numpy()
 
         # compute all metrics on this batch
