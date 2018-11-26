@@ -5,8 +5,6 @@ import torch.nn as nn
 # Constants
 NUM_CLASSES = 10
 IN_FEATURES = 784
-LAYERS = [10, 5, 3]
-
 
 class Flatten(nn.Module):
     def forward(self, input):
@@ -40,13 +38,14 @@ class MLP(nn.Module):
         super(MLP, self).__init__()
         self.num_classes = NUM_CLASSES
         self.in_features = IN_FEATURES
-        self.layers = LAYERS
         # Add input layer and output layer
-        self.layers.insert(0, self.in_features)
         self.features = nn.Sequential(
-            *[nn.Linear(self.layers[i], self.layers[i+1]) for i in range(len(self.layers)-1)]
+            nn.Linear(self.in_features, 256)
         )
-        self.classifier = nn.Linear(self.layers[-1], self.num_classes)
+        self.classifier = nn.Sequential(
+            nn.ReLU(),
+            nn.Linear(self.layers[-1], self.num_classes)
+        )
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
@@ -77,12 +76,10 @@ class CNN(nn.Module):
             nn.ReLU(inplace=True),
             Flatten(),
             nn.Linear(1024, 256),
-            nn.ReLU(inplace=True),
-            nn.Linear(256, 2)
         )
         self.classifier = nn.Sequential(
             nn.ReLU(inplace=True),
-            nn.Linear(2, 10))
+            nn.Linear(256, 10))
 
     def forward(self, x):
         x = self.features(x)
