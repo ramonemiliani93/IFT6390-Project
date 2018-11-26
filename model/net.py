@@ -40,10 +40,10 @@ class MLP(nn.Module):
         self.in_features = IN_FEATURES
         # Add input layer and output layer
         self.features = nn.Sequential(
-            nn.Linear(self.in_features, 256)
+            nn.Linear(self.in_features, 256),
+            nn.ReLU(),
         )
         self.classifier = nn.Sequential(
-            nn.ReLU(),
             nn.Linear(self.layers[-1], self.num_classes)
         )
 
@@ -76,10 +76,11 @@ class CNN(nn.Module):
             nn.ReLU(inplace=True),
             Flatten(),
             nn.Linear(1024, 256),
+            nn.ReLU(inplace=True),
         )
         self.classifier = nn.Sequential(
-            nn.ReLU(inplace=True),
-            nn.Linear(256, 10))
+            nn.Linear(256, 10)
+        )
 
     def forward(self, x):
         x = self.features(x)
