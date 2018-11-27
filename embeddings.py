@@ -67,6 +67,7 @@ def plot_embeddings_2D(embeddings, targets):
 
     plt.show()
 
+
 def extract_embeddings(dataloader, model):
     with torch.no_grad():
         model.eval()

@@ -15,7 +15,7 @@ from metrics import dict_metrics
 from model.net import LinearRegression, MLP, CNN
 import model.data_loader as data_loader
 from evaluate import evaluate
-from losses import CrossEntropyWithL1Loss
+from losses import CrossEntropyWithL1Loss, MultiLabelMarginWithL1Loss
 
 
 # Constants
@@ -25,6 +25,7 @@ SAVE_SUMMARY_STEPS = 100
 parser = argparse.ArgumentParser()
 parser.add_argument('model', default=None, choices=['linear', 'mlp', 'cnn'], help="Model to train")
 parser.add_argument('dataset', default=None, choices=['fashion', 'cifar'], help="Model to train")
+parser.add_argument('loss', default=None, choices=['crossentropy', 'hinge'], help="Model to train")
 parser.add_argument('--data_dir', default='data', help="Directory that will contain dataset")
 parser.add_argument('--model_dir', default='experiments/base_model', help="Directory containing params.json")
 parser.add_argument('--restore_file', default=None,
@@ -193,21 +194,25 @@ if __name__ == '__main__':
     logging.info("Loading the datasets...")
 
     # fetch dataloaders
-    train_dl, val_dl = data_loader.fetch_dataloader(args.dataset, args.data_dir, params)
+    train_dl, val_dl = data_loader.fetch_train_dataloaders(args.dataset, args.data_dir, params)
 
     logging.info("- done.")
 
     # Define the model and optimizer
-    choices = {
+    models = {
         'linear': LinearRegression().cuda() if params.cuda else LinearRegression(),
         'mlp': MLP().cuda() if params.cuda else MLP(),
         'cnn': CNN().cuda() if params.cuda else CNN()
     }
-    model = choices[args.model]
-    optimizer = optim.SGD(model.parameters(), lr=params.learning_rate, weight_decay=params.weight_decay)
+    model = models[args.model]
+    optimizer = optim.SGD(model.parameters(), momentum=0.9, lr=params.learning_rate, weight_decay=params.weight_decay)
 
     # fetch loss function and metrics
-    loss_fn = CrossEntropyWithL1Loss(params.l1_reg)
+    losses = {
+        'crossentropy': CrossEntropyWithL1Loss(params.l1_reg),
+        'hinge': MultiLabelMarginWithL1Loss(params.l1_reg)
+    }
+    loss_fn = losses[args.loss]
     metrics = dict_metrics
 
     # Train the model
