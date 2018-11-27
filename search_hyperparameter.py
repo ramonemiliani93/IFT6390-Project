@@ -5,7 +5,7 @@ import os
 from subprocess import check_call
 import sys
 import itertools
-
+from multiprocessing import Pool
 import utils
 
 
@@ -28,6 +28,9 @@ def launch_training_job(model, dataset, parent_dir, data_dir, job_name, params):
     model_dir = os.path.join(parent_dir, 'results', job_name)
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
+    else:
+        print('Result already exists')
+        return
 
     # Write parameters in json file
     json_path = os.path.join(model_dir, 'params.json')
