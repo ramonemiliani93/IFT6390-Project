@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     for combination in combinations:
         # Modify the relevant parameter in params
-        job_name = '{}__{}__{}'.format(args.model, args.dataset, args.loss)
+        job_name = 'model__{}___dataset__{}___loss__{}'.format(args.model, args.dataset, args.loss)
         for idx, key in enumerate(dict_params.keys()):
             value = combination[idx]
             job_name = job_name + "___{}__{}".format(key, value)
