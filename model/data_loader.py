@@ -13,8 +13,7 @@ cifar_transformer = transforms.Compose([
 
 # Transform for FashionMNIST
 fashion_transformer = transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,))])  # Tensor
+    transforms.ToTensor()])  # Tensor
 
 
 def create_dataset(dataset, root, train, download):
