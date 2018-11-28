@@ -3,12 +3,13 @@
 import argparse
 import json
 import os
-
+import pandas as pd
 from tabulate import tabulate
-
+import re
+import numpy as np
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--parent_dir', default='experiments',
+parser.add_argument('--parent_dir', default='experiments/grid_search/results',
                     help='Directory containing results of experiments')
 
 
@@ -21,17 +22,26 @@ def aggregate_metrics(parent_dir, metrics):
         metrics: (dict) subdir -> {'accuracy': ..., ...}
     """
     # Get the metrics for the folder if it has results from an experiment
-    metrics_file = os.path.join(parent_dir, 'metrics_val_best_weights.json')
-    if os.path.isfile(metrics_file):
-        with open(metrics_file, 'r') as f:
-            metrics[parent_dir] = json.load(f)
+    results = pd.DataFrame(columns=['lr', 'l1', 'l2', 'acc', 'loss'])
 
-    # Check every subdirectory of parent_dir
     for subdir in os.listdir(parent_dir):
-        if not os.path.isdir(os.path.join(parent_dir, subdir)):
-            continue
-        else:
-            aggregate_metrics(os.path.join(parent_dir, subdir), metrics)
+        metrics_file = os.path.join(parent_dir, subdir, 'metrics_val_best_weights.json')
+        if os.path.isfile(metrics_file):
+            settings = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", subdir)
+            if settings[1] == '-05':
+                pd_settings = [1e-5, settings[-1], settings[-3]]
+            else:
+                pd_settings = [settings[0], settings[-1], settings[-3]]
+
+            with open(metrics_file, 'r') as f:
+                metrics[subdir] = json.load(f)
+                pd_settings.append(metrics[subdir]['accuracy'])
+                pd_settings.append(metrics[subdir]['loss'])
+                pd_settings = np.asarray(pd_settings)
+                row = pd.DataFrame(np.expand_dims(pd_settings, 0), columns=['lr', 'l1', 'l2', 'acc', 'loss'])
+                results = results.append(row)
+
+    return results
 
 
 def metrics_to_table(metrics):
@@ -45,10 +55,10 @@ def metrics_to_table(metrics):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-
+    results = pd.DataFrame(columns=['lr', 'l1', 'l2', 'acc', 'loss'])
     # Aggregate metrics from args.parent_dir directory
     metrics = dict()
-    aggregate_metrics(args.parent_dir, metrics)
+    results = aggregate_metrics(args.parent_dir, metrics)
     table = metrics_to_table(metrics)
 
     # Display the table to terminal
