@@ -13,11 +13,12 @@ PYTHON = sys.executable
 parser = argparse.ArgumentParser()
 parser.add_argument('model', default=None, choices=['linear', 'mlp', 'cnn'], help="Model to train")
 parser.add_argument('dataset', default=None, choices=['fashion', 'cifar'], help="Model to train")
+parser.add_argument('loss', default=None, choices=['crossentropy', 'hinge'], help="Model to train")
 parser.add_argument('--parent_dir', default='experiments/grid_search', help='Directory containing params.json')
 parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
 
 
-def launch_training_job(model, dataset, parent_dir, data_dir, job_name, params):
+def launch_training_job(model, dataset, loss, parent_dir, data_dir, job_name, params):
     """Launch training of the model with a set of hyperparameters in parent_dir/job_name
     Args:
         model_dir: (string) directory containing config, weights and log
@@ -38,10 +39,10 @@ def launch_training_job(model, dataset, parent_dir, data_dir, job_name, params):
 
     # Launch training with this config
     path_python_env = '/anaconda3/envs/Project/bin/Python'
-    cmd = "{python} train.py {} {} --model_dir={model_dir} --data_dir {data_dir}".format(model, dataset,
-                                                                                             python=PYTHON,
-                                                                                             model_dir=model_dir,
-                                                                                             data_dir=data_dir)
+    cmd = "{python} train.py {} {} {} --model_dir={model_dir} --data_dir {data_dir}".format(model, dataset, loss,
+                                                                                            python=PYTHON,
+                                                                                            model_dir=model_dir,
+                                                                                            data_dir=data_dir)
     print(cmd)
     check_call(cmd, shell=True)
 
@@ -59,11 +60,11 @@ if __name__ == "__main__":
 
     for combination in combinations:
         # Modify the relevant parameter in params
-        job_name = '{}__{}'.format(args.model, args.dataset)
+        job_name = 'model__{}___dataset__{}___loss__{}'.format(args.model, args.dataset, args.loss)
         for idx, key in enumerate(dict_params.keys()):
             value = combination[idx]
             job_name = job_name + "___{}__{}".format(key, value)
             setattr(params, key, value)
 
         # Launch job (name has to be unique)
-        launch_training_job(args.model, args.dataset, args.parent_dir, args.data_dir, job_name, params)
+        launch_training_job(args.model, args.dataset, args.loss, args.parent_dir, args.data_dir, job_name, params)
