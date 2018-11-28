@@ -1,7 +1,6 @@
-import numpy as np
-from torch.utils.data import DataLoader, SubsetRandomSampler
+from torch.utils.data import DataLoader, random_split
 import torchvision.transforms as transforms
-from torchvision.datasets import CIFAR10, FashionMNIST
+from torchvision.datasets import CIFAR10, MNIST
 
 # Constants
 NUM_WORKERS = 8
@@ -23,7 +22,7 @@ def create_dataset(dataset, root, train, download):
     if dataset == 'cifar':
         data_set = CIFAR10(root=root, train=train, download=download, transform=cifar_transformer)
     elif dataset == 'fashion':
-        data_set = FashionMNIST(root=root, train=train, download=download, transform=fashion_transformer)
+        data_set = MNIST(root=root, train=train, download=download, transform=fashion_transformer)
     else:
         pass
     return data_set
@@ -41,23 +40,18 @@ def fetch_train_dataloaders(dataset, data_dir, params, split=0.2):
 
     # Load datasets, in case data does not exist then download it
     try:
-        train_set = create_dataset(dataset, data_dir, True, False)
-        val_set = create_dataset(dataset, data_dir, True, False)
+        set = create_dataset(dataset, data_dir, True, False)
     except RuntimeError:
-        train_set = create_dataset(dataset, data_dir, True, True)
-        val_set = create_dataset(dataset, data_dir, True, False)
+        set = create_dataset(dataset, data_dir, True, True)
 
-    # Get number of labels and extract partition for train and validation
-    num_train = len(train_set)
-    indices = list(range(num_train))
-    split = int(np.floor(split * num_train))
-    train_idx, valid_idx = indices[split:], indices[:split]
-    train_sampler = SubsetRandomSampler(train_idx)
-    valid_sampler = SubsetRandomSampler(valid_idx)
+    # Split
+    val_size = int(split * len(set))
+    train_size = len(set) - val_size
+    train_set, val_set = random_split(set, [train_size, val_size])
 
-    train_dl = DataLoader(train_set, batch_size=params.batch_size, sampler=train_sampler, num_workers=NUM_WORKERS,
+    train_dl = DataLoader(train_set, batch_size=params.batch_size, shuffle=True, num_workers=NUM_WORKERS,
                           pin_memory=params.cuda)
-    val_dl = DataLoader(val_set, batch_size=params.batch_size, sampler=valid_sampler, num_workers=NUM_WORKERS,
+    val_dl = DataLoader(val_set, batch_size=params.batch_size, shuffle=True, num_workers=NUM_WORKERS,
                         pin_memory=params.cuda)
 
     return train_dl, val_dl

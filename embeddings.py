@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
-from sklearn import decomposition
+from sklearn.decomposition import PCA
 
 import argparse
 import logging
@@ -15,8 +15,6 @@ import torch
 import utils
 from model.net import LinearRegression, MLP, CNN
 import model.data_loader as data_loader
-
-from tensorboardX import SummaryWriter
 
 mnist_classes = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
@@ -36,7 +34,7 @@ parser.add_argument('--restore_file', default=None,
 
 def plot_embeddings_3D(embeddings, targets):
 
-    pca = decomposition.PCA(n_components=3)
+    pca = PCA(n_components=3)
     pca.fit(embeddings)
     x = pca.transform(embeddings)
 
@@ -54,16 +52,13 @@ def plot_embeddings_3D(embeddings, targets):
 
 def plot_embeddings_2D(embeddings, targets):
 
-    pca = decomposition.PCA(n_components=2)
-    pca.fit(embeddings)
-    x = pca.transform(embeddings)
+    x = PCA(n_components=2).fit_transform(embeddings)
 
     plt.figure(1, figsize=(8, 6))
     plt.clf()
 
     # for i in np.unique(targets):
-    plt.scatter(x[:, 0],
-               x[:, 1], c=targets, cmap=plt.cm.nipy_spectral, edgecolor='k')
+    plt.scatter(x[:, 0], x[:, 1], c=targets, cmap=plt.cm.nipy_spectral, edgecolor='k')
 
     plt.show()
 
@@ -71,15 +66,14 @@ def plot_embeddings_2D(embeddings, targets):
 def extract_embeddings(dataloader, model):
     with torch.no_grad():
         model.eval()
-        embeddings = np.zeros((len(dataloader.dataset), 2))
-        labels = np.zeros(len(dataloader.dataset))
-        k = 0
+        embeddings, labels = [], []
         for images, target in dataloader:
             if torch.cuda.is_available():
                 images = images.cuda()
-            embeddings[k:k+len(images)] = model.extract_features(images).data.cpu().numpy()
-            labels[k:k+len(images)] = target.numpy()
-            k += len(images)
+            embeddings.append(model.extract_features(images).data.cpu().numpy())
+            labels.append(target.numpy())
+        embeddings = np.concatenate(embeddings)
+        labels = np.concatenate(labels)
     return embeddings, labels
 
 
@@ -107,7 +101,7 @@ if __name__ == '__main__':
         logging.info("Loading the datasets...")
 
         # fetch dataloaders
-        train_dl, val_dl = data_loader.fetch_dataloader(args.dataset, args.data_dir, params)
+        train_dl, val_dl = data_loader.fetch_train_dataloaders(args.dataset, args.data_dir, params)
 
         logging.info("- done.")
 
@@ -123,4 +117,4 @@ if __name__ == '__main__':
         train_embeddings, train_labels = extract_embeddings(train_dl, model)
         val_embeddings, val_labels = extract_embeddings(val_dl, model)
 
-        plot_embeddings_2D(train_embeddings, train_labels)
+        plot_embeddings_3D(train_embeddings, train_labels)
