@@ -4,7 +4,8 @@ import os
 import shutil
 import torch
 import pickle
-
+import numpy as np
+import torch
 
 class Hyperparameters():
     """Class that loads hyperparameters from a json file.
@@ -145,3 +146,10 @@ def load_checkpoint(checkpoint, model, optimizer=None):
         optimizer.load_state_dict(checkpoint['optim_dict'])
 
     return checkpoint
+
+
+def one_hot(labels, classes=10):
+    labels = labels.data.cpu().numpy()
+    one_hot = np.zeros((len(labels), classes))
+    one_hot[np.arange(len(labels)), labels] = 1
+    return torch.from_numpy(one_hot)

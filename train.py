@@ -15,7 +15,7 @@ from metrics import dict_metrics
 from model.net import LinearRegression, MLP, CNN
 import model.data_loader as data_loader
 from evaluate import evaluate
-from losses import CrossEntropyWithL1Loss, MultiLabelMarginWithL1Loss
+from losses import CrossEntropyWithL1Loss, MultiMarginWithL1Loss, MSEWithL1Loss
 
 
 # Constants
@@ -25,7 +25,7 @@ SAVE_SUMMARY_STEPS = 100
 parser = argparse.ArgumentParser()
 parser.add_argument('model', default=None, choices=['linear', 'mlp', 'cnn'], help="Model to train")
 parser.add_argument('dataset', default=None, choices=['fashion', 'cifar'], help="Model to train")
-parser.add_argument('loss', default=None, choices=['crossentropy', 'hinge'], help="Model to train")
+parser.add_argument('loss', default=None, choices=['crossentropy', 'hinge', 'mse'], help="Model to train")
 parser.add_argument('--data_dir', default='data', help="Directory that will contain dataset")
 parser.add_argument('--model_dir', default='experiments/base_model', help="Directory containing params.json")
 parser.add_argument('--restore_file', default=None,
@@ -210,7 +210,8 @@ if __name__ == '__main__':
     # fetch loss function and metrics
     losses = {
         'crossentropy': CrossEntropyWithL1Loss(params.l1_reg),
-        'hinge': MultiLabelMarginWithL1Loss(params.l1_reg)
+        'hinge': MultiMarginWithL1Loss(params.l1_reg),
+        'mse': MSEWithL1Loss(params.l1_reg)
     }
     loss_fn = losses[args.loss]
     metrics = dict_metrics

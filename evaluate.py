@@ -11,7 +11,7 @@ import utils
 from metrics import dict_metrics
 from model.net import LinearRegression, MLP, CNN
 import model.data_loader as data_loader
-from losses import CrossEntropyWithL1Loss, MultiLabelMarginWithL1Loss
+from losses import CrossEntropyWithL1Loss, MultiMarginWithL1Loss, MSEWithL1Loss
 
 
 parser = argparse.ArgumentParser()
@@ -113,7 +113,8 @@ if __name__ == '__main__':
         # fetch loss function and metrics
         losses = {
             'crossentropy': CrossEntropyWithL1Loss(params.l1_reg),
-            'hinge': MultiLabelMarginWithL1Loss(params.l1_reg)
+            'hinge': MultiMarginWithL1Loss(params.l1_reg),
+            'mse': MSEWithL1Loss(params.l1_reg)
         }
         loss_fn = losses[args.loss]
         metrics = dict_metrics
