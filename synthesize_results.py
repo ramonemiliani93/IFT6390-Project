@@ -22,23 +22,22 @@ def aggregate_metrics(parent_dir, metrics):
         metrics: (dict) subdir -> {'accuracy': ..., ...}
     """
     # Get the metrics for the folder if it has results from an experiment
-    results = pd.DataFrame(columns=['lr', 'l1', 'l2', 'acc', 'loss'])
+    results = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
 
     for subdir in os.listdir(parent_dir):
         metrics_file = os.path.join(parent_dir, subdir, 'metrics_val_best_weights.json')
         if os.path.isfile(metrics_file):
-            settings = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", subdir)
-            if settings[1] == '-05':
-                pd_settings = [1e-5, settings[-1], settings[-3]]
-            else:
-                pd_settings = [settings[0], settings[-1], settings[-3]]
-
+            settings = subdir.split('___')
+            subsettings = [subset.split('__') for subset in settings]
+            pd_settings = [item[1] for item in subsettings]
             with open(metrics_file, 'r') as f:
                 metrics[subdir] = json.load(f)
                 pd_settings.append(metrics[subdir]['accuracy'])
                 pd_settings.append(metrics[subdir]['loss'])
                 pd_settings = np.asarray(pd_settings)
-                row = pd.DataFrame(np.expand_dims(pd_settings, 0), columns=['lr', 'l1', 'l2', 'acc', 'loss'])
+                row = pd.DataFrame(np.expand_dims(pd_settings, 0),
+                                   columns=['model', 'dataset', 'loss_fn', 'lr',
+                                            'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
                 results = results.append(row)
 
     return results
@@ -55,16 +54,42 @@ def metrics_to_table(metrics):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    results = pd.DataFrame(columns=['lr', 'l1', 'l2', 'acc', 'loss'])
+    results = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
     # Aggregate metrics from args.parent_dir directory
     metrics = dict()
     results = aggregate_metrics(args.parent_dir, metrics)
-    table = metrics_to_table(metrics)
+    # table = metrics_to_table(metrics)
+    results[['l1', 'l2']] = results[['l1', 'l2']].apply(pd.to_numeric)
+    filter_loss = ['crossentropy', 'hinge', 'mse']
+    filter_model = ['cnn', 'mlp', 'linear']
+    filter_dataset = ['fashion', 'cifar']
 
-    # Display the table to terminal
-    print(table)
+    best = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
 
-    # Save results in parent_dir/results.md
-    save_file = os.path.join(args.parent_dir, "results.md")
-    with open(save_file, 'w') as f:
-        f.write(table)
+    for dataset in filter_dataset:
+        curr_dataset = results['dataset'] == dataset
+        curr_dataset = results[curr_dataset]
+        for loss in filter_loss:
+            curr_loss = curr_dataset['loss_fn'] == loss
+            curr_loss = curr_dataset[curr_loss]
+            for model in filter_model:
+                curr_model = curr_loss['model'] == model
+                curr_model = curr_loss[curr_model]
+
+                l1 = curr_model.query('l1!=0 and l2==0')
+                res1 = l1.sort_values(by='acc', ascending=False).head(n=1)
+                l2 = curr_model.query('l2!=0 and l1==0')
+                res2 = l2.sort_values(by='acc', ascending=False).head(n=1)
+                l1l2 = curr_model.query('l1!=0 and l2!=0')
+                res12 = l1l2.sort_values(by='acc', ascending=False).head(n=1)
+                alone = curr_model.query('l1==0 and l2==0')
+                resa = alone.sort_values(by='acc', ascending=False).head(n=1)
+
+                best = best.append(res1)
+                best = best.append(res2)
+                best = best.append(res12)
+                best = best.append(resa)
+
+    writer = pd.ExcelWriter('output.xlsx')
+    best.to_excel(writer)
+    writer.save()
