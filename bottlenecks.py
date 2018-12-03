@@ -10,8 +10,12 @@ from synthesize_results import get_best_metrics, aggregate_metrics
 parser = argparse.ArgumentParser()
 parser.add_argument('--parent_dir', default='experiments/grid_search/results',
                     help='Directory containing results of experiments')
+parser.add_argument('--best_dir', default='experiments/best_models')
+parser.add_argument('--bottleneck_dir', default='experiments/bottlenecks')
 
 PYTHON = sys.executable
+
+
 if __name__ == '__main__':
     args = parser.parse_args()
     results = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
@@ -22,11 +26,11 @@ if __name__ == '__main__':
     results[['l1', 'l2']] = results[['l1', 'l2']].apply(pd.to_numeric)
 
     best_models = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
-    best_models = get_best_metrics(best_models, results)
+    best_models = get_best_metrics(args, best_models, results)
     best_models[['l1', 'l2', 'lr', 'epochs', 'bs']] = best_models[['l1', 'l2', 'lr', 'epochs', 'bs']].apply(
         pd.to_numeric)
-    best_models_dir = os.path.join('experiments', 'best_models')
-    bottleneck_dir = os.path.join('experiments', 'bottlenecks')
+    best_models_dir = os.path.join(args.parent_dir, 'best_models')
+    bottleneck_dir = args.bottleneck_dir
 
     for index, row in best_models.iterrows():
 
@@ -66,3 +70,4 @@ if __name__ == '__main__':
 
             print(cmd)
             check_call(cmd, shell=True)
+

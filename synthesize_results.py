@@ -9,6 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
+import shutil
 from utils import safe_log
 
 plt.style.use('seaborn-white')
@@ -25,6 +26,7 @@ plt.rcParams['figure.titlesize'] = 20
 parser = argparse.ArgumentParser()
 parser.add_argument('--parent_dir', default='experiments/grid_search/results',
                     help='Directory containing results of experiments')
+parser.add_argument('--best_dir', default='experiments/best_models')
 
 
 def aggregate_metrics(parent_dir, metrics):
@@ -91,21 +93,21 @@ def generate_accuracy_plot(df, dataset, loss, model):
     ax.zaxis.labelpad = 20
     plt.title('Hyperparameter search with the {} model \n using {} loss on {}'.format(model, loss, dataset)
               , fontsize=16, fontstyle='italic', fontweight='bold', y=1.08)
-    #fig.colorbar(p)
+    # fig.colorbar(p)
     plt.show()
 
 
 def log_tick_formatter_z(val, pos=None):
-    return 10**val
+    return 10 ** val
 
 
 def log_tick_formatter_xy(val, pos=None):
     if val == -5:
         return 0
-    return 10**val
+    return 10 ** val
 
 
-def get_best_metrics(best, results):
+def get_best_metrics(args, best, results):
     str_list = []
     filter_loss = ['crossentropy', 'hinge', 'mse']
     filter_model = ['cnn', 'mlp', 'linear']
@@ -120,7 +122,7 @@ def get_best_metrics(best, results):
                 curr_model = curr_loss['model'] == model
                 curr_model = curr_loss[curr_model]
                 generate_accuracy_plot(curr_model, dataset, loss, model)
-                
+
                 l1 = curr_model.query('l1!=0 and l2==0')
                 res1 = l1.sort_values(by='acc', ascending=False).head(n=1)
                 l2 = curr_model.query('l2!=0 and l1==0')
@@ -189,11 +191,12 @@ def get_best_metrics(best, results):
                 str_list.append(string3)
                 str_list.append(string4)
 
-            # for subdir in str_list:
-            #    if os.path.isdir('experiments/grid_search/results/' + subdir):
-            #        shutil.copytree('experiments/grid_search/results/' + subdir, 'experiments/best_models/' + subdir)
-            #    else:
-            #        x = 1
+    for subdir in str_list:
+        if os.path.isdir(os.path.join(args.parent_dir, subdir)):
+            if not os.path.isdir(os.path.join(args.best_dir, subdir)):
+                shutil.copytree(os.path.join(args.parent_dir, subdir),
+                                os.path.join(args.best_dir, subdir))
+            # shutil.copytree('experiments/grid_search/results/' + subdir, args.experi + subdir)
     return best
 
 
@@ -207,8 +210,6 @@ if __name__ == "__main__":
     best_models = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
     best_models = get_best_metrics(best_models, results)
 
-    writer = pd.ExcelWriter('output.xlsx')
-    best_models.to_excel(writer)
-    writer.save()
-
-
+    # writer = pd.ExcelWriter('output.xlsx')
+    # best_models.to_excel(writer)
+    # writer.save()
