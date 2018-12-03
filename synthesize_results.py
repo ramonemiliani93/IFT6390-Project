@@ -5,8 +5,22 @@ import json
 import os
 import pandas as pd
 from tabulate import tabulate
-import re
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import numpy as np
+from utils import safe_log
+
+plt.style.use('seaborn-white')
+plt.rcParams['font.monospace'] = 'Ubuntu Mono'
+plt.rcParams['font.size'] = 12
+plt.rcParams['axes.labelsize'] = 12
+plt.rcParams['axes.labelweight'] = 'bold'
+plt.rcParams['axes.titlesize'] = 12
+plt.rcParams['xtick.labelsize'] = 10
+plt.rcParams['ytick.labelsize'] = 10
+plt.rcParams['legend.fontsize'] = 12
+plt.rcParams['figure.titlesize'] = 20
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--parent_dir', default='experiments/grid_search/results',
@@ -52,6 +66,44 @@ def metrics_to_table(metrics):
     return res
 
 
+def generate_accuracy_plot(df, dataset, loss, model):
+    # Generate 3D plots where color indicates accuracy
+    acccuracy = [float(i) for i in df['acc'].tolist()]
+    l1 = [safe_log(float(i)) for i in df['l1'].tolist()]
+    l2 = [safe_log(float(i)) for i in df['l2'].tolist()]
+    lr = [safe_log(float(i)) for i in df['lr'].tolist()]
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlim(-5.1, 0.1)
+    ax.set_ylim(-5.1, 0.1)
+    p = ax.scatter(l1, l2, lr, c=acccuracy, marker='o', cmap='brg', vmin=0, vmax=1)
+    ax.xaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter_xy))
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter_xy))
+    ax.zaxis.set_major_formatter(mticker.FuncFormatter(log_tick_formatter_z))
+    ax.set_xticks([safe_log(i) for i in [0.00001, 0.0001, 0.001, 0.01, 0.1, 1]])
+    ax.set_yticks([safe_log(i) for i in [0.00001, 0.0001, 0.001, 0.01, 0.1, 1]])
+    ax.set_zticks([safe_log(i) for i in [0.00001, 0.0001, 0.001, 0.01]])
+    ax.set_xlabel('L1 regularization')
+    ax.xaxis.labelpad = 20
+    ax.set_ylabel('L2 regularization')
+    ax.yaxis.labelpad = 20
+    ax.set_zlabel('Learning rate')
+    ax.zaxis.labelpad = 20
+    plt.title('Hyperparameter search with the {} model \n using {} loss on {}'.format(model, loss, dataset)
+              , fontsize=16, fontstyle='italic', fontweight='bold', y=1.08)
+    #fig.colorbar(p)
+    plt.show()
+
+
+def log_tick_formatter_z(val, pos=None):
+    return 10**val
+
+def log_tick_formatter_xy(val, pos=None):
+    if val == -5:
+        return 0
+    return 10**val
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     results = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
@@ -75,6 +127,7 @@ if __name__ == "__main__":
             for model in filter_model:
                 curr_model = curr_loss['model'] == model
                 curr_model = curr_loss[curr_model]
+                generate_accuracy_plot(curr_model, dataset, loss, model)
 
                 l1 = curr_model.query('l1!=0 and l2==0')
                 res1 = l1.sort_values(by='acc', ascending=False).head(n=1)

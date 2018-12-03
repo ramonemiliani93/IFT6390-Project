@@ -13,7 +13,7 @@ PYTHON = sys.executable
 parser = argparse.ArgumentParser()
 parser.add_argument('model', default=None, choices=['linear', 'mlp', 'cnn'], help="Model to train")
 parser.add_argument('dataset', default=None, choices=['fashion', 'cifar'], help="Model to train")
-parser.add_argument('loss', default=None, choices=['crossentropy', 'hinge'], help="Model to train")
+parser.add_argument('loss', default=None, choices=['crossentropy', 'hinge', 'mse'], help="Model to train")
 parser.add_argument('--parent_dir', default='experiments/grid_search', help='Directory containing params.json')
 parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
 

@@ -153,3 +153,9 @@ def one_hot(labels, classes=10):
     one_hot = np.zeros((len(labels), classes))
     one_hot[np.arange(len(labels)), labels] = 1
     return torch.from_numpy(one_hot)
+
+
+def safe_log(value):
+    if value <= 0:
+        return -5
+    return np.log10(value)
