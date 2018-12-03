@@ -98,26 +98,18 @@ def generate_accuracy_plot(df, dataset, loss, model):
 def log_tick_formatter_z(val, pos=None):
     return 10**val
 
+
 def log_tick_formatter_xy(val, pos=None):
     if val == -5:
         return 0
     return 10**val
 
 
-if __name__ == "__main__":
-    args = parser.parse_args()
-    results = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
-    # Aggregate metrics from args.parent_dir directory
-    metrics = dict()
-    results = aggregate_metrics(args.parent_dir, metrics)
-    # table = metrics_to_table(metrics)
-    results[['l1', 'l2']] = results[['l1', 'l2']].apply(pd.to_numeric)
+def get_best_metrics(best, results):
+    str_list = []
     filter_loss = ['crossentropy', 'hinge', 'mse']
     filter_model = ['cnn', 'mlp', 'linear']
     filter_dataset = ['fashion', 'cifar']
-
-    best = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
-
     for dataset in filter_dataset:
         curr_dataset = results['dataset'] == dataset
         curr_dataset = results[curr_dataset]
@@ -127,7 +119,6 @@ if __name__ == "__main__":
             for model in filter_model:
                 curr_model = curr_loss['model'] == model
                 curr_model = curr_loss[curr_model]
-                generate_accuracy_plot(curr_model, dataset, loss, model)
 
                 l1 = curr_model.query('l1!=0 and l2==0')
                 res1 = l1.sort_values(by='acc', ascending=False).head(n=1)
@@ -142,7 +133,81 @@ if __name__ == "__main__":
                 best = best.append(res2)
                 best = best.append(res12)
                 best = best.append(resa)
+                string1 = 'model__' + res1['model'].values[0] + \
+                          '___dataset__' + res1['dataset'].values[0] + \
+                          '___loss__' + res1['loss_fn'].values[0] + \
+                          '___learning_rate__' + res1['lr'].values[0] + \
+                          '___batch_size__' + res1['bs'].values[0] + \
+                          '___num_epochs__' + res1['epochs'].values[0] + \
+                          '___weight_decay__' + str(res1['l2'].values[0]) + \
+                          '___l1_reg__' + str(res1['l1'].values[0])
+                string1 = string1.replace('__0.0___', '__0___')
+                if string1[-3:] == '0.0':
+                    string1 = string1.replace('___l1_reg__0.0', '___l1_reg__0')
+
+                string2 = 'model__' + res2['model'].values[0] + \
+                          '___dataset__' + res2['dataset'].values[0] + \
+                          '___loss__' + res2['loss_fn'].values[0] + \
+                          '___learning_rate__' + res2['lr'].values[0] + \
+                          '___batch_size__' + res2['bs'].values[0] + \
+                          '___num_epochs__' + res2['epochs'].values[0] + \
+                          '___weight_decay__' + str(res2['l2'].values[0]) + \
+                          '___l1_reg__' + str(res2['l1'].values[0])
+                string2 = string2.replace('__0.0___', '__0___')
+
+                if string2[-3:] == '0.0':
+                    string2 = string2.replace('___l1_reg__0.0', '___l1_reg__0')
+
+                string3 = 'model__' + res12['model'].values[0] + \
+                          '___dataset__' + res12['dataset'].values[0] + \
+                          '___loss__' + res12['loss_fn'].values[0] + \
+                          '___learning_rate__' + res12['lr'].values[0] + \
+                          '___batch_size__' + res12['bs'].values[0] + \
+                          '___num_epochs__' + res12['epochs'].values[0] + \
+                          '___weight_decay__' + str(res12['l2'].values[0]) + \
+                          '___l1_reg__' + str(res12['l1'].values[0])
+                string3 = string3.replace('__0.0___', '__0___')
+
+                if string3[-3:] == '0.0':
+                    string3 = string3.replace('___l1_reg__0.0', '___l1_reg__0')
+
+                string4 = 'model__' + resa['model'].values[0] + \
+                          '___dataset__' + resa['dataset'].values[0] + \
+                          '___loss__' + resa['loss_fn'].values[0] + \
+                          '___learning_rate__' + resa['lr'].values[0] + \
+                          '___batch_size__' + resa['bs'].values[0] + \
+                          '___num_epochs__' + resa['epochs'].values[0] + \
+                          '___weight_decay__' + str(resa['l2'].values[0]) + \
+                          '___l1_reg__' + str(resa['l1'].values[0])
+                string4 = string4.replace('__0.0___', '__0___')
+                if string4[-3:] == '0.0':
+                    string4 = string4.replace('___l1_reg__0.0', '___l1_reg__0')
+
+                str_list.append(string1)
+                str_list.append(string2)
+                str_list.append(string3)
+                str_list.append(string4)
+
+            # for subdir in str_list:
+            #    if os.path.isdir('experiments/grid_search/results/' + subdir):
+            #        shutil.copytree('experiments/grid_search/results/' + subdir, 'experiments/best_models/' + subdir)
+            #    else:
+            #        x = 1
+    return best
+
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+    results = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
+    # Aggregate metrics from args.parent_dir directory
+    metrics = dict()
+    results = aggregate_metrics(args.parent_dir, metrics)
+    results[['l1', 'l2']] = results[['l1', 'l2']].apply(pd.to_numeric)
+    best_models = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
+    best_models = get_best_metrics(best_models, results)
 
     writer = pd.ExcelWriter('output.xlsx')
-    best.to_excel(writer)
+    best_models.to_excel(writer)
     writer.save()
+
+
