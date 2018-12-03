@@ -16,7 +16,7 @@ from losses import CrossEntropyWithL1Loss, MultiMarginWithL1Loss, MSEWithL1Loss
 
 parser = argparse.ArgumentParser()
 parser.add_argument('model', default=None, choices=['linear', 'mlp', 'cnn'], help="Model to train")
-parser.add_argument('dataset', default=None, choices=['fashion', 'cifar'], help="Model to train")
+parser.add_argument('dataset', default=None, choices=['fashion', 'cifar', 'mse'], help="Model to train")
 parser.add_argument('loss', default=None, choices=['crossentropy', 'hinge'], help="Model to train")
 parser.add_argument('--data_dir', default='data', help="Directory that will contain dataset")
 parser.add_argument('--model_dir', default='experiments/base_model', help="Directory containing params.json")
