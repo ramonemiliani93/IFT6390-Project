@@ -119,7 +119,8 @@ def get_best_metrics(best, results):
             for model in filter_model:
                 curr_model = curr_loss['model'] == model
                 curr_model = curr_loss[curr_model]
-
+                generate_accuracy_plot(curr_model, dataset, loss, model)
+                
                 l1 = curr_model.query('l1!=0 and l2==0')
                 res1 = l1.sort_values(by='acc', ascending=False).head(n=1)
                 l2 = curr_model.query('l2!=0 and l1==0')
