@@ -10,11 +10,16 @@ from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D
 import time
 import os.path
+
 # find . -name "best.pth.tar" >> directories.txt
 filename = "directories.txt"
 
 
 def get_model_files(file_source):
+    """Given a filename source with all the pathnames listed, split the models into each type
+    Args:
+        file_source: A file holding all the paths for all the models
+    """
     file_names = open(file_source, "r").readlines()
     file_names = [name.replace("\n","") for name in file_names]
     line_models = [name for name in file_names if "__linear__" in name]
@@ -25,6 +30,10 @@ def get_model_files(file_source):
 
 
 def load_model(my_model):
+    """Loads the model given the path
+    Args:
+        my_model: The path to the model to use
+    """        
     empty_model = None
     if("linear" in my_model):
         empty_model = net.LinearRegression()
@@ -116,37 +125,45 @@ def compute_outputs(model):
     labels = np.concatenate(labels)
     return feats,labels
 
+# Load in all the model paths
 linear, mlp, cnn = get_model_files(filename)
 params = param(False,64)
 
+# Load in the data loaders
 train_dl, val_dl = data_loader.fetch_train_dataloaders('cifar', 'data', params)
 
 for model in linear:
     loaded_model = load_model(model)
+    # Compute the PCA for the feature space
     if(not os.path.isfile(model.replace(model.split("/")[-1],"features_pca.png"))):
         feats,labels = compute_features(loaded_model)
         plot_pca_classes(feats,labels,model,"features_pca")
         del(feats,labels)
+    # Compute the PCA for the output space
     if(not os.path.isfile(model.replace(model.split("/")[-1],"outputs_pca.png"))):
         feats,labels = compute_outputs(loaded_model)
         plot_pca_classes(feats,labels,model,"outputs_pca")
 
 for model in mlp:
     loaded_model = load_model(model)
+    # Compute the PCA for the feature space
     if(not os.path.isfile(model.replace(model.split("/")[-1],"features_pca.png"))):
         feats,labels = compute_features(loaded_model)
         plot_pca_classes(feats,labels,model,"features_pca")
         del(feats,labels)
+    # Compute the PCA for the output space
     if(not os.path.isfile(model.replace(model.split("/")[-1],"outputs_pca.png"))):
         feats,labels = compute_outputs(loaded_model)
         plot_pca_classes(feats,labels,model,"outputs_pca")
 
 for model in cnn:
     loaded_model = load_model(model)
+    # Compute the PCA for the feature space
     if(not os.path.isfile(model.replace(model.split("/")[-1],"features_pca.png"))):
         feats,labels = compute_features(loaded_model)
         plot_pca_classes(feats,labels,model,"features_pca")
         del(feats,labels)
+    # Compute the PCA for the output space
     if(not os.path.isfile(model.replace(model.split("/")[-1],"outputs_pca.png"))):
         feats,labels = compute_outputs(loaded_model)
         plot_pca_classes(feats,labels,model,"outputs_pca")
