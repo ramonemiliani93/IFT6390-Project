@@ -6,6 +6,7 @@ import torch.nn as nn
 NUM_CLASSES = 10
 IN_FEATURES = 784
 
+
 class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
@@ -34,7 +35,8 @@ class MLP(nn.Module):
     """
     Multilayer perceptron model
     """
-    def __init__(self):
+
+    def __init__(self, bottleneck=False):
         super(MLP, self).__init__()
         self.num_classes = NUM_CLASSES
         self.in_features = IN_FEATURES
@@ -43,6 +45,11 @@ class MLP(nn.Module):
             nn.Linear(self.in_features, 50),
             nn.ReLU(),
         )
+        self.bottleneck = bottleneck
+        if bottleneck:
+
+            self.bottleneck_layer = nn.Linear(50, 2)
+
         self.classifier = nn.Sequential(
             nn.Linear(50, self.num_classes)
         )
@@ -50,6 +57,8 @@ class MLP(nn.Module):
     def forward(self, x):
         x = x.view(x.size(0), -1)
         x = self.features(x)
+        if self.bottleneck:
+            x = self.bottleneck_layer(x)
         x = self.classifier(x)
         return x
 
@@ -58,13 +67,19 @@ class MLP(nn.Module):
         x = self.features(x)
         return x
 
+    def extract_bottleneck(self, x):
+        x = self.features(x)
+        if self.bottleneck:
+            x = self.bottleneck_layer(x)
+        return x
+
 
 class CNN(nn.Module):
     """
     CNN model
     """
 
-    def __init__(self):
+    def __init__(self, bottleneck=False):
         super(CNN, self).__init__()
         self.num_classes = NUM_CLASSES
         self.features = nn.Sequential(
@@ -78,15 +93,26 @@ class CNN(nn.Module):
             nn.Linear(320, 50),
             nn.ReLU(inplace=True),
         )
+        self.bottleneck = bottleneck
+        if bottleneck:
+            self.bottleneck_layer = nn.Linear(50, 2)
         self.classifier = nn.Sequential(
             nn.Linear(50, 10)
         )
 
     def forward(self, x):
         x = self.features(x)
+        if self.bottleneck:
+            x = self.bottleneck_layer(x)
         x = self.classifier(x)
         return x
 
     def extract_features(self, x):
         x = self.features(x)
+        return x
+
+    def extract_bottleneck(self, x):
+        x = self.features(x)
+        if self.bottleneck:
+            x = self.bottleneck_layer(x)
         return x

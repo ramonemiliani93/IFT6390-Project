@@ -31,6 +31,7 @@ parser.add_argument('--model_dir', default='experiments/base_model', help="Direc
 parser.add_argument('--restore_file', default=None,
                     help="Optional, name of the file in --model_dir containing weights to reload before \
                     training")  # 'best' or 'train'
+parser.add_argument('--bottleneck', default=False, action='store_true', help="train with bottleneck layer")
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params):
@@ -204,6 +205,14 @@ if __name__ == '__main__':
         'mlp': MLP().cuda() if params.cuda else MLP(),
         'cnn': CNN().cuda() if params.cuda else CNN()
     }
+
+    if args.bottleneck:
+        models = {
+            'linear': LinearRegression().cuda() if params.cuda else LinearRegression(),
+            'mlp': MLP(bottleneck=True).cuda() if params.cuda else MLP(),
+            'cnn': CNN(bottleneck=True).cuda() if params.cuda else CNN()
+        }
+
     model = models[args.model]
     optimizer = optim.SGD(model.parameters(), momentum=0.9, lr=params.learning_rate, weight_decay=params.weight_decay)
 
