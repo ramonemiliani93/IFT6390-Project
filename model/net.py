@@ -17,17 +17,31 @@ class LinearRegression(nn.Module):
     Softmax regression model
     """
 
-    def __init__(self):
+    def __init__(self, bottleneck=False):
         super(LinearRegression, self).__init__()
         self.num_classes = NUM_CLASSES
         self.in_features = IN_FEATURES
         self.features = nn.Sequential(
             nn.Linear(self.in_features, self.num_classes)
         )
+        self.bottleneck = bottleneck
+        if bottleneck:
+
+            self.bottleneck_layer = nn.Linear(self.in_features, 2)
+            self.features = nn.Linear(2, self.num_classes)
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
+        if self.bottleneck:
+            x = self.bottleneck_layer(x)
         x = self.features(x)
+        return x
+
+    def extract_bottleneck(self, x):
+        x = x.view(x.size(0), -1)
+        if self.bottleneck:
+            x = self.bottleneck_layer(x)
+
         return x
 
 
@@ -46,13 +60,14 @@ class MLP(nn.Module):
             nn.ReLU(),
         )
         self.bottleneck = bottleneck
-        if bottleneck:
-
-            self.bottleneck_layer = nn.Linear(50, 2)
 
         self.classifier = nn.Sequential(
             nn.Linear(50, self.num_classes)
         )
+
+        if bottleneck:
+            self.bottleneck_layer = nn.Linear(50, 2)
+            self.classifier = nn.Linear(2, self.num_classes)
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
@@ -68,6 +83,7 @@ class MLP(nn.Module):
         return x
 
     def extract_bottleneck(self, x):
+        x = x.view(x.size(0), -1)
         x = self.features(x)
         if self.bottleneck:
             x = self.bottleneck_layer(x)
@@ -94,11 +110,14 @@ class CNN(nn.Module):
             nn.ReLU(inplace=True),
         )
         self.bottleneck = bottleneck
+        self.classifier = nn.Sequential(
+            nn.Linear(50, self.num_classes)
+        )
         if bottleneck:
             self.bottleneck_layer = nn.Linear(50, 2)
-        self.classifier = nn.Sequential(
-            nn.Linear(50, 10)
-        )
+            self.classifier = nn.Sequential(
+                nn.Linear(2, self.num_classes)
+            )
 
     def forward(self, x):
         x = self.features(x)
