@@ -139,7 +139,7 @@ def load_checkpoint(checkpoint, model, optimizer=None):
     """
     if not os.path.exists(checkpoint):
         raise ("File doesn't exist {}".format(checkpoint))
-    checkpoint = torch.load(checkpoint)
+    checkpoint = torch.load(checkpoint, map_location='cpu')
     model.load_state_dict(checkpoint['state_dict'])
 
     if optimizer:
@@ -159,3 +159,21 @@ def safe_log(value):
     if value <= 0:
         return -5
     return np.log10(value)
+
+def load_all_checkpoint(checkpoint, model, optimizer=None):
+    """Loads model parameters (state_dict) from file_path. If optimizer is provided, loads state_dict of
+    optimizer assuming it is present in checkpoint.
+    Args:
+        checkpoint: (string) filename which needs to be loaded
+        model: (torch.nn.Module) model for which the parameters are loaded
+        optimizer: (torch.optim) optional: resume optimizer from checkpoint
+    """
+    if not os.path.exists(checkpoint):
+        raise ("File doesn't exist {}".format(checkpoint))
+    checkpoint = torch.load(checkpoint, map_location=lambda storage, loc: storage)
+    model.load_state_dict(checkpoint['state_dict'])
+
+    if optimizer:
+        optimizer.load_state_dict(checkpoint['optim_dict'])
+
+    return checkpoint
