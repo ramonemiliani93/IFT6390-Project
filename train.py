@@ -200,17 +200,12 @@ if __name__ == '__main__':
     logging.info("- done.")
 
     # Define the model and optimizer
-    models = {
-        'linear': LinearRegression().cuda() if params.cuda else LinearRegression(),
-        'mlp': MLP().cuda() if params.cuda else MLP(),
-        'cnn': CNN().cuda() if params.cuda else CNN()
-    }
 
-    if args.bottleneck:
-        models = {
-            'linear': LinearRegression().cuda() if params.cuda else LinearRegression(),
-            'mlp': MLP(bottleneck=True).cuda() if params.cuda else MLP(),
-            'cnn': CNN(bottleneck=True).cuda() if params.cuda else CNN()
+    models = {
+        'linear': LinearRegression(bottleneck=args.bottleneck).cuda() if params.cuda else LinearRegression(
+            bottleneck=args.bottleneck),
+        'mlp': MLP(bottleneck=args.bottleneck).cuda() if params.cuda else MLP(bottleneck=args.bottleneck),
+        'cnn': CNN(bottleneck=args.bottleneck).cuda() if params.cuda else CNN(bottleneck=args.bottleneck)
         }
 
     model = models[args.model]
