@@ -17,11 +17,12 @@ from losses import CrossEntropyWithL1Loss, MultiMarginWithL1Loss, MSEWithL1Loss
 parser = argparse.ArgumentParser()
 parser.add_argument('model', default=None, choices=['linear', 'mlp', 'cnn'], help="Model to train")
 parser.add_argument('dataset', default=None, choices=['fashion', 'cifar', 'mse'], help="Model to train")
-parser.add_argument('loss', default=None, choices=['crossentropy', 'hinge'], help="Model to train")
+parser.add_argument('loss', default=None, choices=['crossentropy', 'hinge', 'mse'], help="Model to train")
 parser.add_argument('--data_dir', default='data', help="Directory that will contain dataset")
 parser.add_argument('--model_dir', default='experiments/base_model', help="Directory containing params.json")
 parser.add_argument('--restore_file', default='best', help="name of the file in --model_dir \
                      containing weights to load")
+parser.add_argument('--bottleneck', default=False, action='store_true', help="train with bottleneck layer")
 
 
 def evaluate(model, loss_fn, dataloader, metrics, params):
@@ -58,6 +59,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params):
 
         # extract data from torch Variable, move to cpu, convert to numpy arrays
         output_batch = activation(output_batch).data.cpu().numpy()
+        # output_batch = output_batch.data.cpu().numpy()
         labels_batch = labels_batch.data.cpu().numpy()
 
         # compute all metrics on this batch
@@ -74,57 +76,58 @@ def evaluate(model, loss_fn, dataloader, metrics, params):
 
 
 if __name__ == '__main__':
-    if __name__ == '__main__':
-        """
-            Evaluate the model on the test set.
-        """
-        # Load the parameters
-        args = parser.parse_args()
-        json_path = os.path.join(args.model_dir, 'params.json')
-        assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
-        params = utils.Hyperparameters(json_path)
 
-        # use GPU if available
-        params.cuda = torch.cuda.is_available()  # use GPU is available
+    """
+        Evaluate the model on the test set.
+    """
+    # Load the parameters
+    args = parser.parse_args()
+    json_path = os.path.join(args.model_dir, 'params.json')
+    assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
+    params = utils.Hyperparameters(json_path)
 
-        # Set the random seed for reproducible experiments
-        torch.manual_seed(230)
-        if params.cuda: torch.cuda.manual_seed(230)
+    # use GPU if available
+    params.cuda = torch.cuda.is_available()  # use GPU is available
 
-        # Get the logger
-        utils.set_logger(os.path.join(args.model_dir, 'evaluate.log'))
+    # Set the random seed for reproducible experiments
+    torch.manual_seed(230)
+    if params.cuda: torch.cuda.manual_seed(230)
 
-        # Create the input data pipeline
-        logging.info("Creating the dataset...")
+    # Get the logger
+    utils.set_logger(os.path.join(args.model_dir, 'evaluate.log'))
 
-        # fetch dataloaders
-        test_dl = data_loader.fetch_test_dataloader(args.dataset, args.data_dir, params)
+    # Create the input data pipeline
+    logging.info("Creating the dataset...")
 
-        logging.info("- done.")
+    # fetch dataloaders
+    test_dl = data_loader.fetch_test_dataloader(args.dataset, args.data_dir, params)
+    train_dl, val_dl = data_loader.fetch_train_dataloaders(args.dataset, args.data_dir, params)
 
-        # Define the model and optimizer
-        models = {
-            'linear': LinearRegression().cuda() if params.cuda else LinearRegression(),
-            'mlp': MLP().cuda() if params.cuda else MLP(),
-            'cnn': CNN().cuda() if params.cuda else CNN()
-        }
-        model = models[args.model]
+    logging.info("- done.")
 
-        # fetch loss function and metrics
-        losses = {
-            'crossentropy': CrossEntropyWithL1Loss(params.l1_reg),
-            'hinge': MultiMarginWithL1Loss(params.l1_reg),
-            'mse': MSEWithL1Loss(params.l1_reg)
-        }
-        loss_fn = losses[args.loss]
-        metrics = dict_metrics
+    # Define the model and optimizer
+    models = {
+        'linear': LinearRegression().cuda() if params.cuda else LinearRegression(),
+        'mlp': MLP().cuda() if params.cuda else MLP(),
+        'cnn': CNN().cuda() if params.cuda else CNN()
+    }
+    model = models[args.model]
 
-        logging.info("Starting evaluation")
+    # fetch loss function and metrics
+    losses = {
+        'crossentropy': CrossEntropyWithL1Loss(params.l1_reg),
+        'hinge': MultiMarginWithL1Loss(params.l1_reg),
+        'mse': MSEWithL1Loss(params.l1_reg)
+    }
+    loss_fn = losses[args.loss]
+    metrics = dict_metrics
 
-        # Reload weights from the saved file
-        utils.load_checkpoint(os.path.join(args.model_dir, args.restore_file + '.pth.tar'), model)
+    logging.info("Starting evaluation")
 
-        # Evaluate
-        test_metrics, loss = evaluate(model, loss_fn, test_dl, metrics, params)
-        save_path = os.path.join(args.model_dir, "metrics_test_{}.json".format(args.restore_file))
-        utils.save_dict_to_json(test_metrics, save_path)
+    # Reload weights from the saved file
+    utils.load_checkpoint(os.path.join(args.model_dir, args.restore_file + '.pth.tar'), model)
+
+    # Evaluate
+    test_metrics, loss = evaluate(model, loss_fn, test_dl, metrics, params)
+    save_path = os.path.join(args.model_dir, "metrics_test_{}.json".format(args.restore_file))
+    utils.save_dict_to_json(test_metrics, save_path)

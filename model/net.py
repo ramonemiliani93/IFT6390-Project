@@ -6,7 +6,7 @@ import torch.nn as nn
 NUM_CLASSES = 10
 IN_FEATURES = 784
 
-
+# test
 class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
