@@ -56,12 +56,12 @@ def plot_embeddings_2D(embeddings, targets, name, bottleneck_dir):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    results = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
+    results = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l2', 'l1', 'acc', 'loss'])
     # Aggregate metrics from args.parent_dir directory
     metrics = dict()
     results = aggregate_metrics(args.parent_dir, metrics)
     results[['l1', 'l2']] = results[['l1', 'l2']].apply(pd.to_numeric)
-    best_models = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
+    best_models = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l2', 'l1', 'acc', 'loss'])
     best_models = get_best_metrics(args, best_models, results)
 
     best_models[['lr', 'bs', 'acc', 'loss', 'epochs', 'acc_test', 'loss_test']] = best_models[
@@ -99,6 +99,8 @@ if __name__ == '__main__':
             with open(os.path.join(exp_dir, 'params.json'), 'w') as outfile:
                 json.dump(json_params, outfile)
 
+            if os.path.isfile(os.path.join(figures_dir, subdir + '.jpg')):
+                continue
             cmd = "{python} train.py {} {} {} --bottleneck --model_dir={model_dir} --data_dir {data_dir}".format(
                 row['model'],
                 row['dataset'],
@@ -110,8 +112,6 @@ if __name__ == '__main__':
             print(cmd)
             check_call(cmd, shell=True)
 
-            if os.path.isfile(os.path.join(figures_dir, subdir + '.jpg')):
-                continue
             params = utils.Hyperparameters(os.path.join(exp_dir, 'params.json'))
             params.cuda = torch.cuda.is_available()
             torch.manual_seed(230)

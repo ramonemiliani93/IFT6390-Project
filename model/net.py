@@ -37,6 +37,10 @@ class LinearRegression(nn.Module):
         x = self.features(x)
         return x
 
+    def extract_features(self, x):
+        x = x.view(x.size(0), -1)
+        return x
+
     def extract_bottleneck(self, x):
         x = x.view(x.size(0), -1)
         if self.bottleneck:

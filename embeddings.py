@@ -30,6 +30,8 @@ parser.add_argument('--model_dir', default='experiments/base_model', help="Direc
 parser.add_argument('--restore_file', default=None,
                     help="Optional, name of the file in --model_dir containing weights to reload before \
                     training")  # 'best' or 'train'
+parser.add_argument('--save_fig', default='pca_figures')
+parser.add_argument('--fig_name')
 
 
 def plot_embeddings_3D(embeddings, targets):
@@ -50,7 +52,7 @@ def plot_embeddings_3D(embeddings, targets):
     plt.show()
 
 
-def plot_embeddings_2D(embeddings, targets):
+def plot_embeddings_2D(embeddings, targets, fig_dir, fig_name):
 
     x = PCA(n_components=2).fit_transform(embeddings)
 
@@ -59,7 +61,8 @@ def plot_embeddings_2D(embeddings, targets):
 
     # for i in np.unique(targets):
     plt.scatter(x[:, 0], x[:, 1], c=targets, cmap=plt.cm.nipy_spectral, edgecolor='k')
-
+    plt.tight_layout()
+    plt.savefig(os.path.join(fig_dir, fig_name + '.jpg'))
     plt.show()
 
 
@@ -78,43 +81,46 @@ def extract_embeddings(dataloader, model):
 
 
 if __name__ == '__main__':
-    if __name__ == '__main__':
 
-        # Load the parameters from json file
-        args = parser.parse_args()
-        json_path = os.path.join(args.model_dir, 'params.json')
-        assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
-        params = utils.Hyperparameters(json_path)
+    # Load the parameters from json file
+    args = parser.parse_args()
+    json_path = os.path.join(args.model_dir, 'params.json')
+    assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
+    params = utils.Hyperparameters(json_path)
 
-        # use GPU if available
-        params.cuda = torch.cuda.is_available()
+    # use GPU if available
+    params.cuda = torch.cuda.is_available()
 
-        # Set the random seed for reproducible experiments
-        torch.manual_seed(230)
-        if params.cuda:
-            torch.cuda.manual_seed(230)
+    # Set the random seed for reproducible experiments
+    torch.manual_seed(230)
+    if params.cuda:
+        torch.cuda.manual_seed(230)
 
-        # Set the logger
-        utils.set_logger(os.path.join(args.model_dir, 'lg.log'))
+    # Set the logger
+    utils.set_logger(os.path.join(args.model_dir, 'lg.log'))
 
-        # Create the input data pipeline
-        logging.info("Loading the datasets...")
+    # Create the input data pipeline
+    logging.info("Loading the datasets...")
 
-        # fetch dataloaders
-        train_dl, val_dl = data_loader.fetch_train_dataloaders(args.dataset, args.data_dir, params)
+    # fetch dataloaders
+    train_dl, val_dl = data_loader.fetch_train_dataloaders(args.dataset, args.data_dir, params)
+    test_dl = data_loader.fetch_test_dataloader(args.dataset, args.data_dir, params)
+    logging.info("- done.")
 
-        logging.info("- done.")
+    # Define the model and optimizer
+    choices = {
+        'linear': LinearRegression().cuda() if params.cuda else LinearRegression(),
+        'mlp': MLP().cuda() if params.cuda else MLP(),
+        'cnn': CNN().cuda() if params.cuda else CNN()
+    }
+    model = choices[args.model]
+    utils.load_checkpoint(args.checkpoint, model)
 
-        # Define the model and optimizer
-        choices = {
-            'linear': LinearRegression().cuda() if params.cuda else LinearRegression(),
-            'mlp': MLP().cuda() if params.cuda else MLP(),
-            'cnn': CNN().cuda() if params.cuda else CNN()
-        }
-        model = choices[args.model]
-        utils.load_checkpoint(args.checkpoint, model)
+    train_embeddings, train_labels = extract_embeddings(train_dl, model)
+    val_embeddings, val_labels = extract_embeddings(val_dl, model)
+    test_embeddings, test_labels = extract_embeddings(test_dl, model)
 
-        train_embeddings, train_labels = extract_embeddings(train_dl, model)
-        val_embeddings, val_labels = extract_embeddings(val_dl, model)
-
-        plot_embeddings_3D(train_embeddings, train_labels)
+    if not os.path.isdir(args.save_fig):
+        os.mkdir(args.save_fig)
+    # fig_name = os.path.join(args.save_dir, args.fig_name)
+    plot_embeddings_2D(test_embeddings, test_labels, args.save_fig, args.fig_name)

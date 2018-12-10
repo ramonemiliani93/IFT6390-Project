@@ -52,8 +52,6 @@ def aggregate_metrics(parent_dir, metrics):
         metrics_file = os.path.join(parent_dir, subdir, 'metrics_val_best_weights.json')
         metrics_file_test = os.path.join(parent_dir, subdir, 'metrics_test_best.json')
 
-        if subdir.split('__')[5] == 'triplet':
-            continue
         if os.path.isfile(metrics_file):
             settings = subdir.split('___')
             subsettings = [subset.split('__') for subset in settings]
@@ -72,7 +70,7 @@ def aggregate_metrics(parent_dir, metrics):
 
         row = pd.DataFrame(np.expand_dims(pd_settings, 0),
                            columns=['model', 'dataset', 'loss_fn', 'lr',
-                                    'bs', 'epochs', 'l1', 'l2', 'acc', 'loss',
+                                    'bs', 'epochs', 'l2', 'l1', 'acc', 'loss',
                                     'acc_test', 'loss_test'])
         results = results.append(row)
 
@@ -129,7 +127,7 @@ def log_tick_formatter_xy(val, pos=None):
 
 def get_best_metrics(args, best, results):
     str_list = []
-    filter_loss = ['crossentropy', 'hinge', 'mse']
+    filter_loss = ['crossentropy', 'hinge', 'mse', 'triplet']
     filter_model = ['cnn', 'mlp', 'linear']
     filter_dataset = ['fashion', 'cifar']
     for dataset in filter_dataset:
@@ -152,6 +150,9 @@ def get_best_metrics(args, best, results):
                          '___num_epochs__' + res['epochs'].values[0] + \
                          '___weight_decay__' + str(res['l2'].values[0]) + \
                          '___l1_reg__' + str(res['l1'].values[0])
+                string = string.replace('__0.0___', '__0___')
+                if string[-3:] == '0.0':
+                    string = string.replace('___l1_reg__0.0', '___l1_reg__0')
                 str_list.append(string)
                 best = best.append(res)
 
@@ -236,17 +237,17 @@ def get_best_metrics(args, best, results):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    results = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
+    results = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l2', 'l1', 'acc', 'loss'])
     # Aggregate metrics from args.parent_dir directory
     metrics = dict()
     results = aggregate_metrics(args.parent_dir, metrics)
     results[['l1', 'l2']] = results[['l1', 'l2']].apply(pd.to_numeric)
-    best_models = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l1', 'l2', 'acc', 'loss'])
+    best_models = pd.DataFrame(columns=['model', 'dataset', 'loss_fn', 'lr', 'bs', 'epochs', 'l2', 'l1', 'acc', 'loss'])
     best_models = get_best_metrics(args, best_models, results)
 
     best_models[['lr', 'bs', 'acc', 'loss', 'epochs', 'acc_test', 'loss_test']] = best_models[
         ['lr', 'bs', 'acc', 'loss', 'epochs', 'acc_test', 'loss_test']].apply(
         pd.to_numeric)
-    writer = pd.ExcelWriter('output_best.xlsx')
+    writer = pd.ExcelWriter('output_best_2.xlsx')
     best_models.to_excel(writer)
     writer.save()
